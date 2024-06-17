@@ -1,13 +1,18 @@
 import { Alert, Button, Label, Spinner, TextInput } from 'flowbite-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import {
+  signInFailure,
+  signInSuccess,
+  signInStart,
+} from '../redux/user/userSlice';
+import { useDispatch, useSelector } from 'react-redux';
 
 const SignUp = () => {
   const [formData, setFormData] = useState({});
-  const [errorMessage, setErrorMessage] = useState(null);
-  const [loading, setLoading] = useState(false);
-
+  const { loading, error: errorMessage } = useSelector((state) => state.user);
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   const handleChange = (e) => {
     setFormData({
@@ -18,12 +23,11 @@ const SignUp = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.username || !formData.email || !formData.password) {
-      return setErrorMessage('Please fill out all fields');
+    if (!formData.email || !formData.password) {
+      return dispatch(signInFailure('Please fill out all the fields'));
     }
     try {
-      setLoading(true);
-      setErrorMessage(null);
+      dispatch(signInStart());
       const res = await fetch('/api/auth/signin', {
         method: 'POST',
         headers: {
@@ -35,19 +39,15 @@ const SignUp = () => {
       const data = await res.json();
 
       if (data.success === false) {
-        setErrorMessage(data.message);
+        dispatch(signInFailure(data.message));
       }
 
       if (res.ok) {
+        dispatch(signInSuccess(data));
         navigate('/');
       }
-
-      setLoading(false);
     } catch (error) {
-      setLoading(false);
-      if (error) {
-        return setErrorMessage('Something went wrong please try again!');
-      }
+      dispatch(signInFailure(error));
     }
   };
 
@@ -73,7 +73,7 @@ const SignUp = () => {
             <div className=''>
               <Label value='Your email'></Label>
               <TextInput
-                type='email'
+                // type='email'
                 placeholder='name@company.com'
                 id='email'
                 onChange={handleChange}
